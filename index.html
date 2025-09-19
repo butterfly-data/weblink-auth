@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Upload to Butterfly Data</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h2>🔒 Upload to Butterfly Data (JWT Auth)</h2>
+
+  <div id="auth-section">
+    <label>Email: <input type="email" id="email" required /></label><br />
+    <label>Password: <input type="password" id="password" required /></label><br />
+    <button id="login">Login</button>
+    <button id="signup">Sign Up</button>
+  </div>
+
+  <hr />
+
+  <form id="upload-form" style="display:none;">
+    <label>Client ID:
+      <input type="text" name="clientId" value="client_123" required />
+    </label><br /><br />
+    <label>Select file:
+      <input type="file" name="file" required />
+    </label><br /><br />
+    <button type="submit">Upload</button>
+  </form>
+
+  <pre id="output"></pre>
+
+  <script>
+    const SUPABASE_URL = 'https://aavqxnyuhnwsdckmtimp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdnF4bnl1aG53c2Rja210aW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxNzA5MzMsImV4cCI6MjA3Mzc0NjkzM30.razwPSHWv3MSAT4A9xi-khsajCEby0WLvXBPUkgEkrw'; // 🔐 Replace with your real anon key
+    const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/get-upload-link`;
+
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const loginBtn = document.getElementById('login');
+    const signupBtn = document.getElementById('signup');
+    const uploadForm = document.getElementById('upload-form');
+    const output = document.getElementById('output');
+
+    loginBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return output.textContent = `❌ Login error: ${error.message}`;
+      output.textContent = "✅ Logged in! You can now upload files.";
+      uploadForm.style.display = 'block';
+    });
+
+    signupBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return output.textContent = `❌ Sign-up error: ${error.message}`;
+      output.textContent = "✅ Sign-up successful! Check your email to confirm.";
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(uploadForm);
+
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error || !session?.access_token) {
+        return output.textContent = "❌ Not authenticated. Please log in first.";
+      }
+
+      const jwt = session.access_token;
+
+      const res = await fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: formData,
+      });
+
+      const result = await res.json();
+      output.textContent = JSON.stringify(result, null, 2);
+    });
+  </script>
+</body>
+</html>
