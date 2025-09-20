@@ -190,7 +190,7 @@
         formData.append("file", fileInput.files[i]);
       }
 
-      const response = await fetch("https://<your-project>.functions.supabase.co/get-upload-link", {
+      const response = await fetch("https://aavqxnyuhnwsdckmtimp.supabase.co/functions/v1/get-upload-link2", {
         method: "POST",
         body: formData
       });
