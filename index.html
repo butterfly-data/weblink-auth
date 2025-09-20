@@ -19,6 +19,12 @@
       text-align: center;
     }
 
+    header img {
+      height: 80px;
+      margin-bottom: 1rem;
+      object-fit: contain;
+    }
+
     header h1 {
       margin: 0;
       font-size: 2rem;
@@ -71,7 +77,8 @@
     #file-guidelines {
       margin-top: 0.5rem;
       font-size: 0.9rem;
-      color: #666;
+      color: #777;
+      text-align: center;
     }
 
     #file-input {
@@ -108,11 +115,20 @@
       font-weight: bold;
       text-align: center;
     }
+
+    #output.success {
+      color: green;
+    }
+
+    #output.error {
+      color: red;
+    }
   </style>
 </head>
 <body>
 
   <header>
+    <img src="https://raw.githubusercontent.com/butterfly-data/weblink-auth/main/black%20logo%20trans%20bg.png" alt="Butterfly Logo" />
     <h1>Butterfly Data Consulting</h1>
     <h2>Client File Upload Portal</h2>
   </header>
@@ -127,10 +143,8 @@
 
       <label>Upload Files:</label>
       <div id="drop-area">Click or Drag & Drop files here</div>
-      <div id="file-guidelines">
-        Accepted file types: .csv, .xlsx, .xls, .tsv, .parquet, .json, .txt
-      </div>
-      <input type="file" id="file-input" name="file" multiple required />
+      <div id="file-guidelines">Accepted formats: .csv, .xlsx, .parquet</div>
+      <input type="file" id="file-input" name="file" multiple accept=".csv,.xlsx,.parquet" required />
 
       <ul class="file-list" id="file-list"></ul>
 
@@ -141,7 +155,6 @@
   </div>
 
   <script>
-    const allowedExtensions = ['csv', 'xlsx', 'xls', 'tsv', 'parquet','json','txt'];
     const dropArea = document.getElementById("drop-area");
     const fileInput = document.getElementById("file-input");
     const fileList = document.getElementById("file-list");
@@ -166,32 +179,17 @@
     dropArea.addEventListener("drop", (e) => {
       e.preventDefault();
       const droppedFiles = [...e.dataTransfer.files];
-      validateAndSetFiles(droppedFiles);
+      handleFiles(droppedFiles);
     });
 
     fileInput.addEventListener("change", () => {
-      const selectedFiles = [...fileInput.files];
-      validateAndSetFiles(selectedFiles);
+      handleFiles([...fileInput.files]);
     });
 
-    function validateAndSetFiles(selected) {
-      const invalidFiles = selected.filter(file => {
-        const ext = file.name.split('.').pop().toLowerCase();
-        return !allowedExtensions.includes(ext);
-      });
-
-      if (invalidFiles.length > 0) {
-        output.textContent = `❌ Invalid file types detected: ${invalidFiles.map(f => f.name).join(', ')}`;
-        output.style.color = "red";
-        files = [];
-        fileList.innerHTML = "";
-        return;
-      }
-
-      files = selected;
+    function handleFiles(selectedFiles) {
+      const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'];
+      files = selectedFiles.filter(file => allowedTypes.includes(file.type) || file.name.endsWith('.parquet'));
       updateFileList();
-      output.textContent = "";
-      output.style.color = "green";
     }
 
     function updateFileList() {
@@ -206,14 +204,8 @@
     document.getElementById("upload-form").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      if (files.length === 0) {
-        output.textContent = "❌ No valid files selected.";
-        output.style.color = "red";
-        return;
-      }
-
+      output.className = "";
       output.textContent = "Uploading...";
-      output.style.color = "#333";
 
       const form = e.target;
       const formData = new FormData();
@@ -233,10 +225,10 @@
 
       if (response.ok) {
         output.textContent = "✅ File upload successful!";
-        output.style.color = "green";
+        output.className = "success";
       } else {
         output.textContent = `❌ Error: ${result.error || "Unknown error"}`;
-        output.style.color = "red";
+        output.className = "error";
       }
     });
   </script>
