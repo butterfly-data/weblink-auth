@@ -143,8 +143,8 @@
 
       <label>Upload Files:</label>
       <div id="drop-area">Click or Drag & Drop files here</div>
-      <div id="file-guidelines">Accepted formats: .csv, .xlsx, .parquet</div>
-      <input type="file" id="file-input" name="file" multiple accept=".csv,.xlsx,.parquet" required />
+      <div id="file-guidelines">Accepted formats: .csv, .xlsx, .xls, .tsv, .parquet, .json, .txt</div>
+      <input type="file" id="file-input" name="file" multiple accept=".csv,.xlsx,.xls,.tsv,.parquet,.json,.txt" required />
 
       <ul class="file-list" id="file-list"></ul>
 
@@ -187,8 +187,8 @@
     });
 
     function handleFiles(selectedFiles) {
-      const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'];
-      files = selectedFiles.filter(file => allowedTypes.includes(file.type) || file.name.endsWith('.parquet'));
+      const allowedExtensions = /\.(csv|xlsx|xls|tsv|parquet|json|txt)$/i;
+      files = selectedFiles.filter(file => allowedExtensions.test(file.name));
       updateFileList();
     }
 
