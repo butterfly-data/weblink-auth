@@ -68,6 +68,12 @@
       background: #eaf4ff;
     }
 
+    #file-guidelines {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
     #file-input {
       display: none;
     }
@@ -102,38 +108,6 @@
       font-weight: bold;
       text-align: center;
     }
-
-    /* Optional progress bar */
-    #progress-bar {
-      width: 100%;
-      background: #f0f0f0;
-      border-radius: 8px;
-      overflow: hidden;
-      display: none;
-      margin-top: 1rem;
-    }
-
-    #progress-bar-inner {
-      height: 8px;
-      background: #00E28A;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    @media (max-width: 600px) {
-      .container {
-        margin: 1rem;
-        padding: 1.5rem;
-      }
-
-      header h1 {
-        font-size: 1.5rem;
-      }
-
-      header h2 {
-        font-size: 1rem;
-      }
-    }
   </style>
 </head>
 <body>
@@ -153,13 +127,12 @@
 
       <label>Upload Files:</label>
       <div id="drop-area">Click or Drag & Drop files here</div>
+      <div id="file-guidelines">
+        Accepted file types: .csv, .xlsx, .xls, .tsv, .parquet
+      </div>
       <input type="file" id="file-input" name="file" multiple required />
 
       <ul class="file-list" id="file-list"></ul>
-
-      <div id="progress-bar">
-        <div id="progress-bar-inner"></div>
-      </div>
 
       <button type="submit">Upload Files</button>
     </form>
@@ -168,12 +141,11 @@
   </div>
 
   <script>
+    const allowedExtensions = ['csv', 'xlsx', 'xls', 'tsv', 'parquet'];
     const dropArea = document.getElementById("drop-area");
     const fileInput = document.getElementById("file-input");
     const fileList = document.getElementById("file-list");
     const output = document.getElementById("output");
-    const progressBar = document.getElementById("progress-bar");
-    const progressBarInner = document.getElementById("progress-bar-inner");
     let files = [];
 
     dropArea.addEventListener("click", () => fileInput.click());
@@ -193,15 +165,34 @@
 
     dropArea.addEventListener("drop", (e) => {
       e.preventDefault();
-      files = [...e.dataTransfer.files];
-      fileInput.files = e.dataTransfer.files;
-      updateFileList();
+      const droppedFiles = [...e.dataTransfer.files];
+      validateAndSetFiles(droppedFiles);
     });
 
     fileInput.addEventListener("change", () => {
-      files = [...fileInput.files];
-      updateFileList();
+      const selectedFiles = [...fileInput.files];
+      validateAndSetFiles(selectedFiles);
     });
+
+    function validateAndSetFiles(selected) {
+      const invalidFiles = selected.filter(file => {
+        const ext = file.name.split('.').pop().toLowerCase();
+        return !allowedExtensions.includes(ext);
+      });
+
+      if (invalidFiles.length > 0) {
+        output.textContent = `❌ Invalid file types detected: ${invalidFiles.map(f => f.name).join(', ')}`;
+        output.style.color = "red";
+        files = [];
+        fileList.innerHTML = "";
+        return;
+      }
+
+      files = selected;
+      updateFileList();
+      output.textContent = "";
+      output.style.color = "green";
+    }
 
     function updateFileList() {
       fileList.innerHTML = "";
@@ -216,52 +207,36 @@
       e.preventDefault();
 
       if (files.length === 0) {
-        output.textContent = "❗Please select at least one file.";
+        output.textContent = "❌ No valid files selected.";
         output.style.color = "red";
         return;
       }
 
       output.textContent = "Uploading...";
       output.style.color = "#333";
-      progressBar.style.display = "block";
-      progressBarInner.style.width = "0%";
 
       const form = e.target;
       const formData = new FormData();
 
       formData.append("clientId", form.clientId.value);
       formData.append("password", form.password.value);
-
-      for (let i = 0; i < fileInput.files.length; i++) {
-        formData.append("file", fileInput.files[i]);
+      for (let i = 0; i < files.length; i++) {
+        formData.append("file", files[i]);
       }
 
-      try {
-        const response = await fetch("https://aavqxnyuhnwsdckmtimp.supabase.co/functions/v1/get-upload-link2", {
-          method: "POST",
-          body: formData
-        });
+      const response = await fetch("https://aavqxnyuhnwsdckmtimp.supabase.co/functions/v1/get-upload-link2", {
+        method: "POST",
+        body: formData
+      });
 
-        const result = await response.json();
+      const result = await response.json();
 
-        if (response.ok) {
-          output.textContent = "✅ File upload successful!";
-          output.style.color = "green";
-          fileInput.value = "";
-          files = [];
-          fileList.innerHTML = "";
-        } else {
-          output.textContent = `❌ Error: ${result.error || "Unknown error"}`;
-          output.style.color = "red";
-        }
-
-      } catch (err) {
-        output.textContent = "❌ Error: Upload failed.";
+      if (response.ok) {
+        output.textContent = "✅ File upload successful!";
+        output.style.color = "green";
+      } else {
+        output.textContent = `❌ Error: ${result.error || "Unknown error"}`;
         output.style.color = "red";
-        console.error(err);
-      } finally {
-        progressBarInner.style.width = "100%";
-        setTimeout(() => progressBar.style.display = "none", 1000);
       }
     });
   </script>
